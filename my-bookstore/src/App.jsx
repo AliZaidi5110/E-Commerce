@@ -30,9 +30,9 @@ function ProtectedRoute({ children, role }) {
 export default function App() {
   return (
     <Router>
-      <div className="min-h-screen bg-white dark:bg-gray-900 text-gray-900 dark:text-white transition-colors duration-300 flex flex-col">
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-blue-900/20 text-gray-900 dark:text-white transition-all duration-500 flex flex-col relative overflow-hidden">
         <Navbar />
-        <div className="p-4 sm:p-6 flex-grow">
+        <div className="flex-grow relative z-10">
           <Routes>
             <Route path="/" element={<Home />} />
             <Route path="/login" element={<Login />} />

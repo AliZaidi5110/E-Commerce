@@ -87,19 +87,23 @@ const Home = () => {
   }, []);
 
   return (
-    <div className="min-h-screen max-w-5xl mx-auto bg-gradient-to-b from-gray-50 via-white to-gray-50 dark:from-gray-900 dark:via-gray-800 dark:to-gray-900 text-gray-900 dark:text-white overflow-hidden transition-colors duration-300">
-      {/* Hero Section */}
+    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-blue-900/10 dark:to-purple-900/10 text-gray-900 dark:text-white overflow-hidden transition-colors duration-300 relative">
+      {/* Background Elements */}
+      <div className="absolute inset-0 overflow-hidden pointer-events-none">
+        <div className="absolute top-20 right-20 w-72 h-72 bg-gradient-to-br from-blue-400/10 to-purple-600/10 rounded-full blur-3xl animate-pulse"></div>
+        <div className="absolute bottom-20 left-20 w-96 h-96 bg-gradient-to-br from-purple-400/10 to-blue-600/10 rounded-full blur-3xl animate-pulse delay-1000"></div>
+      </div>
 
-      <main className="max-w-7xl mx-auto px-6 py-16 space-y-24">
+      <main className="relative max-w-7xl mx-auto px-6 py-16 space-y-32">
         {/* Hero Image Slider */}
         <section>
-          <h2 className="text-4xl font-bold text-center mb-8 text-gray-900 dark:text-white">
+          <h2 className="text-5xl md:text-6xl font-bold text-center mb-12 text-gray-900 dark:text-white">
             Featured{" "}
-            <span className="bg-gradient-to-r from-blue-500 to-purple-500 bg-clip-text text-transparent">
+            <span className="bg-gradient-to-r from-blue-600 via-purple-600 to-blue-800 dark:from-blue-400 dark:via-purple-400 dark:to-blue-600 bg-clip-text text-transparent">
               Collections
             </span>
           </h2>
-          <div className="relative h-50 md:h-72 sm:h-96 md:rounded-3xl rounded-2xl  overflow-hidden shadow-2xl">
+          <div className="relative h-64 md:h-80 lg:h-96 rounded-3xl overflow-hidden shadow-2xl hover:shadow-3xl transition-shadow duration-500 group">
             {slides.map((slide, index) => (
               <img
                 key={index}
@@ -116,15 +120,19 @@ const Home = () => {
 
             <button
               onClick={prevSlide}
-              className="absolute left-6 top-1/2 -translate-y-1/2 bg-white/20 dark:bg-white/10 hover:bg-white/40 dark:hover:bg-white/30 text-gray-800 dark:text-white p-3 rounded-full backdrop-blur-md transition-all duration-300"
+              className="absolute left-6 top-1/2 -translate-y-1/2 bg-white/80 dark:bg-gray-800/80 hover:bg-white dark:hover:bg-gray-700 text-gray-800 dark:text-white p-4 rounded-full backdrop-blur-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-110 opacity-0 group-hover:opacity-100"
             >
-              ◀
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
             </button>
             <button
               onClick={nextSlide}
-              className="absolute right-6 top-1/2 -translate-y-1/2 bg-white/20 dark:bg-white/10 hover:bg-white/40 dark:hover:bg-white/30 text-gray-800 dark:text-white p-3 rounded-full backdrop-blur-md transition-all duration-300"
+              className="absolute right-6 top-1/2 -translate-y-1/2 bg-white/80 dark:bg-gray-800/80 hover:bg-white dark:hover:bg-gray-700 text-gray-800 dark:text-white p-4 rounded-full backdrop-blur-xl transition-all duration-300 shadow-lg hover:shadow-xl transform hover:scale-110 opacity-0 group-hover:opacity-100"
             >
-              ▶
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
             </button>
 
             <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2">
