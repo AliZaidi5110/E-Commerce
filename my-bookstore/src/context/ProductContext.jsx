@@ -5,6 +5,7 @@ const ProductContext = createContext();
 
 export const ProductProvider = ({ children }) => {
   const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     fetchProducts();
@@ -12,10 +13,13 @@ export const ProductProvider = ({ children }) => {
 
   const fetchProducts = async () => {
     try {
+      setLoading(true);
       const res = await axios.get("http://localhost:5001/api/products");
       setProducts(res.data);
     } catch (err) {
       console.error("Error fetching products:", err);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -56,7 +60,7 @@ export const ProductProvider = ({ children }) => {
   };
 
   return (
-    <ProductContext.Provider value={{ products, addProduct, editProduct, deleteProduct }}>
+    <ProductContext.Provider value={{ products, loading, addProduct, editProduct, deleteProduct }}>
       {children}
     </ProductContext.Provider>
   );
