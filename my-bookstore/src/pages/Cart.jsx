@@ -145,7 +145,11 @@ const Cart = () => {
                     {/* Product Image */}
                     <div className="flex-shrink-0">
                       <img 
-                        src={getImageSrc(item.image || 'placeholder.png')} 
+                        src={
+                          item.image && item.image.startsWith("http") 
+                            ? item.image 
+                            : getImageSrc(item.image || 'placeholder.png')
+                        } 
                         alt={item.title} 
                         className="w-full sm:w-24 h-32 object-cover rounded-lg shadow-lg group-hover:shadow-blue-500/30 transition-shadow duration-300"
                       />

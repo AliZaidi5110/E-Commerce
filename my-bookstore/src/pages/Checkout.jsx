@@ -104,7 +104,11 @@ const Checkout = () => {
                 {checkoutItems.map((item, index) => (
                   <div key={index} className="flex gap-4 p-4 bg-gray-700/30 rounded-lg">
                     <img 
-                      src={getImageSrc(item.image)} 
+                      src={
+                        item.image && item.image.startsWith("http") 
+                          ? item.image 
+                          : getImageSrc(item.image || 'placeholder.png')
+                      } 
                       alt={item.title} 
                       className="w-16 h-20 object-cover rounded"
                     />

@@ -101,7 +101,11 @@ export default function ProductCard({ product, cardWidth = "w-60", imageHeight =
       aria-label={`Book: ${product.title}`}
     >
       <img
-        src={getImageSrc(product.image)}
+        src={
+          product.image.startsWith("http") 
+            ? product.image 
+            : getImageSrc(product.image)
+        }
         alt={product.title}
         className={`w-full ${imageHeight} object-cover mb-3 rounded`}
       />

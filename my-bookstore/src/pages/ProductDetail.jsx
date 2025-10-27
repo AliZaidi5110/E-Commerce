@@ -103,7 +103,11 @@ const ProductDetail = () => {
     <div className="p-4 sm:p-6 max-w-4xl mx-auto bg-gray-50 dark:bg-gray-900">
       <div className="bg-white dark:bg-gray-800 p-4 sm:p-6 rounded shadow grid grid-cols-1 md:grid-cols-3 gap-6">
         <img
-          src={getImageSrc(product.image)}
+          src={
+            product.image.startsWith("http") 
+              ? product.image 
+              : getImageSrc(product.image)
+          }
           alt={product.title}
           className="w-full h-72 object-cover rounded md:col-span-1"
         />

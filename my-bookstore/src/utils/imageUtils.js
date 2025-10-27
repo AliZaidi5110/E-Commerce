@@ -45,5 +45,33 @@ const imageMap = {
 };
 
 export const getImageSrc = (imageName) => {
-  return imageMap[imageName] || '/placeholder-book.jpg';
+  // Handle null, undefined, or empty string
+  if (!imageName) {
+    return '/placeholder-book.svg';
+  }
+  
+  // If it's already a URL, return it as is
+  if (imageName.startsWith('http') || imageName.startsWith('/')) {
+    return imageName;
+  }
+  
+  // Look up in the image map
+  const mappedImage = imageMap[imageName];
+  if (mappedImage) {
+    return mappedImage;
+  }
+  
+  // Try to find a case-insensitive match
+  const lowerImageName = imageName.toLowerCase();
+  const foundKey = Object.keys(imageMap).find(key => 
+    key.toLowerCase() === lowerImageName
+  );
+  
+  if (foundKey) {
+    return imageMap[foundKey];
+  }
+  
+  // Final fallback
+  console.warn(`Image not found: ${imageName}`);
+  return '/placeholder-book.svg';
 };
