@@ -4,7 +4,6 @@ import Footer from "./layout/Footer";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import Register from "./pages/Register";
-import AdminLogin from "./pages/AdminLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import ManageProducts from "./pages/ManageProducts";
 import Customers from "./pages/Customers";
@@ -20,7 +19,16 @@ import { ToastProvider } from "./components/Toast";
 import Breadcrumbs from "./components/Breadcrumbs";
 
 function ProtectedRoute({ children, role }) {
-  const { user } = useAuth();
+  const { user, isLoading } = useAuth();
+  
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+      </div>
+    );
+  }
+  
   if (!user) {
     return <Navigate to="/login" />;
   }
@@ -43,7 +51,6 @@ export default function App() {
                 <Route path="/" element={<Home />} />
                 <Route path="/login" element={<Login />} />
                 <Route path="/register" element={<Register />} />
-                <Route path="/admin-login" element={<AdminLogin />} />
 
                 {/* Admin Routes */}
                 <Route

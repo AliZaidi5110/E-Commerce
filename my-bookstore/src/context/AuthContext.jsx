@@ -5,10 +5,15 @@ const AuthContext = createContext();
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
+  const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     const token = localStorage.getItem("token");
-    if (token) fetchUser(token);
+    if (token) {
+      fetchUser(token);
+    } else {
+      setIsLoading(false);
+    }
   }, []);
 
   const fetchUser = async (token) => {
@@ -21,19 +26,40 @@ export const AuthProvider = ({ children }) => {
       console.error("Error fetching user:", err);
       localStorage.removeItem("token");
       setUser(null);
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const login = async ({ email, password }) => {
     try {
-      const res = await axios.post("http://localhost:5001/api/auth/login", { email, password });
-      const { token, user: userData } = res.data;
+      // Try user login first
+      let res = await axios.post("http://localhost:5001/api/auth/login", { email, password });
+      let { token, user: userData } = res.data;
+      
+      // If user login fails, try admin login
+      if (!userData) {
+        res = await axios.post("http://localhost:5001/api/auth/admin-login", { email, password });
+        const data = res.data;
+        token = data.token;
+        userData = data.admin || data.user;
+      }
+      
       localStorage.setItem("token", token);
       setUser(userData);
       return { success: true, user: userData };
     } catch (err) {
-      console.error("Login error:", err);
-      return { error: err.response?.data?.message || "Login failed" };
+      // If user login failed, try admin login
+      try {
+        const adminRes = await axios.post("http://localhost:5001/api/auth/admin-login", { email, password });
+        const { token, admin } = adminRes.data;
+        localStorage.setItem("token", token);
+        setUser(admin);
+        return { success: true, user: admin };
+      } catch (adminErr) {
+        console.error("Login error:", err);
+        return { error: "Invalid email or password" };
+      }
     }
   };
 
@@ -56,7 +82,7 @@ export const AuthProvider = ({ children }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, login, register, logout }}>
+    <AuthContext.Provider value={{ user, login, register, logout, isLoading }}>
       {children}
     </AuthContext.Provider>
   );

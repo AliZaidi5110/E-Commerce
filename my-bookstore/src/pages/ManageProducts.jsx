@@ -1,10 +1,12 @@
 import React, { useState } from "react";
 import { useProducts } from "../context/ProductContext";
+import { useToast } from "../components/Toast";
 import { getImageSrc } from "../utils/imageUtils";
-import { Pencil, Trash2, PlusCircle, PackageSearch, XCircle } from "lucide-react";
+import { Pencil, Trash2, PlusCircle, PackageSearch, XCircle, Upload, Link as LinkIcon } from "lucide-react";
 
 const ManageProducts = () => {
   const { products, addProduct, editProduct, deleteProduct } = useProducts();
+  const { success, error } = useToast();
   const [product, setProduct] = useState({
     title: "",
     author: "",
@@ -16,7 +18,11 @@ const ManageProducts = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showAddModal, setShowAddModal] = useState(false);
   const [selectedProductId, setSelectedProductId] = useState(null);
+  const [imageUploadType, setImageUploadType] = useState('url'); // 'url' or 'file'
+  const [editErrors, setEditErrors] = useState({});
+  const [imagePreview, setImagePreview] = useState('');
   const productsPerPage = 6;
 
   // Pagination logic
@@ -49,15 +55,90 @@ const ManageProducts = () => {
 
   const handleDelete = () => {
     deleteProduct(selectedProductId);
+    success("Product deleted successfully!");
     setShowDeleteModal(false);
     setSelectedProductId(null);
   };
 
+  const validateForm = (productData) => {
+    const errors = {};
+    if (!productData.title.trim()) errors.title = "Title is required";
+    if (!productData.author.trim()) errors.author = "Author is required";
+    if (!productData.price || productData.price <= 0) errors.price = "Valid price is required";
+    if (!productData.image || !productData.image.trim()) errors.image = "Image is required";
+    if (!productData.description.trim()) errors.description = "Description is required";
+    
+    // Validate image URL if it's a URL
+    if (productData.image && imageUploadType === 'url' && !productData.image.startsWith('data:image/')) {
+      const urlPattern = /^(https?:\/\/)?([\da-z\.-]+)\.([a-z\.]{2,6})([\/\w \.-]*)*\/?$/;
+      if (!urlPattern.test(productData.image)) {
+        errors.image = "Please enter a valid image URL";
+      }
+    }
+    
+    return errors;
+  };
+
   const handleEditSubmit = (e) => {
     e.preventDefault();
-    editProduct(editId, product);
-    setShowEditModal(false);
-    setEditId(null);
+    const errors = validateForm(product);
+    setEditErrors(errors);
+    
+    if (Object.keys(errors).length === 0) {
+      editProduct(editId, product);
+      success("Product updated successfully!");
+      setShowEditModal(false);
+      setEditId(null);
+      resetModalState();
+    }
+  };
+
+  const handleAddSubmit = (e) => {
+    e.preventDefault();
+    const errors = validateForm(product);
+    setEditErrors(errors);
+    
+    if (Object.keys(errors).length === 0) {
+      addProduct(product);
+      success("Product added successfully!");
+      setShowAddModal(false);
+      resetModalState();
+    }
+  };
+
+  const handleImageUpload = (e) => {
+    const file = e.target.files[0];
+    if (file) {
+      // Validate file type
+      if (!file.type.startsWith('image/')) {
+        setEditErrors({ ...editErrors, image: "Please select a valid image file" });
+        return;
+      }
+      
+      // Validate file size (max 5MB)
+      if (file.size > 5 * 1024 * 1024) {
+        setEditErrors({ ...editErrors, image: "Image size should be less than 5MB" });
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        const base64String = event.target.result;
+        setProduct({ ...product, image: base64String });
+        setImagePreview(base64String);
+        // Clear any previous image errors
+        if (editErrors.image) {
+          setEditErrors({ ...editErrors, image: "" });
+        }
+      };
+      reader.onerror = () => {
+        setEditErrors({ ...editErrors, image: "Error reading file" });
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const resetModalState = () => {
     setProduct({
       title: "",
       author: "",
@@ -65,6 +146,9 @@ const ManageProducts = () => {
       image: "",
       description: "",
     });
+    setEditErrors({});
+    setImageUploadType('url');
+    setImagePreview('');
   };
 
   return (
@@ -74,64 +158,14 @@ const ManageProducts = () => {
         <h1 className="text-3xl font-bold text-white">Manage Products</h1>
       </div>
 
-      {/* Product Form */}
-      <form
-        onSubmit={handleSubmit}
-        className="bg-gray-800 p-6 rounded-xl shadow-lg border border-gray-700 mb-8"
+      {/* Floating Add Button */}
+      <button
+        onClick={() => setShowAddModal(true)}
+        className="fixed bottom-6 right-6 w-14 h-14 bg-green-600 hover:bg-green-700 text-white rounded-full shadow-lg hover:shadow-xl transition-all duration-300 flex items-center justify-center z-40"
+        title="Add New Product"
       >
-        <div className="grid md:grid-cols-2 gap-4">
-          <input
-            type="text"
-            placeholder="Title"
-            value={product.title}
-            onChange={(e) => setProduct({ ...product, title: e.target.value })}
-            className="w-full p-3 bg-gray-700 text-white rounded-lg outline-none focus:ring-2 focus:ring-green-500"
-            required
-          />
-          <input
-            type="text"
-            placeholder="Author"
-            value={product.author}
-            onChange={(e) => setProduct({ ...product, author: e.target.value })}
-            className="w-full p-3 bg-gray-700 text-white rounded-lg outline-none focus:ring-2 focus:ring-green-500"
-            required
-          />
-          <input
-            type="number"
-            placeholder="Price"
-            value={product.price}
-            onChange={(e) => setProduct({ ...product, price: e.target.value })}
-            className="w-full p-3 bg-gray-700 text-white rounded-lg outline-none focus:ring-2 focus:ring-green-500"
-            required
-          />
-          <input
-            type="text"
-            placeholder="Image URL"
-            value={product.image}
-            onChange={(e) => setProduct({ ...product, image: e.target.value })}
-            className="w-full p-3 bg-gray-700 text-white rounded-lg outline-none focus:ring-2 focus:ring-green-500"
-            required
-          />
-        </div>
-
-        <textarea
-          placeholder="Description"
-          value={product.description}
-          onChange={(e) =>
-            setProduct({ ...product, description: e.target.value })
-          }
-          className="w-full p-3 mt-4 bg-gray-700 text-white rounded-lg outline-none focus:ring-2 focus:ring-green-500"
-          required
-        />
-
-        <button
-          type="submit"
-          className="w-full flex items-center justify-center gap-2 mt-4 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition"
-        >
-          <PlusCircle size={20} />
-          {editId ? "Update Product" : "Add Product"}
-        </button>
-      </form>
+        <PlusCircle size={24} />
+      </button>
 
       {/* Product Grid */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
@@ -158,6 +192,8 @@ const ManageProducts = () => {
                 onClick={() => {
                   setEditId(p._id);
                   setProduct(p);
+                  setImagePreview(p.image);
+                  setImageUploadType(p.image.startsWith('data:image/') ? 'file' : 'url');
                   setShowEditModal(true);
                 }}
                 className="flex items-center gap-1 px-3 py-1 bg-blue-600 text-white rounded hover:bg-blue-700 text-sm transition"
@@ -243,9 +279,12 @@ const ManageProducts = () => {
       {/* Edit Product Modal */}
       {showEditModal && (
         <div className="fixed inset-0 flex items-center justify-center backdrop-blur-sm bg-black/60 z-50">
-          <div className="bg-gray-900 text-white p-6 rounded-xl shadow-xl w-full max-w-lg relative">
+          <div className="bg-gray-900 text-white p-6 rounded-xl shadow-xl w-full max-w-lg relative max-h-[90vh] overflow-y-auto">
             <button
-              onClick={() => setShowEditModal(false)}
+              onClick={() => {
+                setShowEditModal(false);
+                resetModalState();
+              }}
               className="absolute top-3 right-3 text-gray-400 hover:text-white"
             >
               <XCircle size={24} />
@@ -253,60 +292,296 @@ const ManageProducts = () => {
             <h2 className="text-2xl font-semibold mb-4">Edit Product</h2>
 
             <form onSubmit={handleEditSubmit} className="space-y-3">
-              <input
-                type="text"
-                placeholder="Title"
-                value={product.title}
-                onChange={(e) =>
-                  setProduct({ ...product, title: e.target.value })
-                }
-                className="w-full p-3 bg-gray-700 rounded-lg"
-                required
-              />
-              <input
-                type="text"
-                placeholder="Author"
-                value={product.author}
-                onChange={(e) =>
-                  setProduct({ ...product, author: e.target.value })
-                }
-                className="w-full p-3 bg-gray-700 rounded-lg"
-                required
-              />
-              <input
-                type="number"
-                placeholder="Price"
-                value={product.price}
-                onChange={(e) =>
-                  setProduct({ ...product, price: e.target.value })
-                }
-                className="w-full p-3 bg-gray-700 rounded-lg"
-                required
-              />
-              <input
-                type="text"
-                placeholder="Image URL"
-                value={product.image}
-                onChange={(e) =>
-                  setProduct({ ...product, image: e.target.value })
-                }
-                className="w-full p-3 bg-gray-700 rounded-lg"
-                required
-              />
-              <textarea
-                placeholder="Description"
-                value={product.description}
-                onChange={(e) =>
-                  setProduct({ ...product, description: e.target.value })
-                }
-                className="w-full p-3 bg-gray-700 rounded-lg"
-                required
-              />
+              <div>
+                <input
+                  type="text"
+                  placeholder="Title"
+                  value={product.title}
+                  onChange={(e) => {
+                    setProduct({ ...product, title: e.target.value });
+                    if (editErrors.title) setEditErrors({ ...editErrors, title: "" });
+                  }}
+                  className={`w-full p-3 bg-gray-700 rounded-lg ${editErrors.title ? 'border border-red-500' : ''}`}
+                />
+                {editErrors.title && <p className="text-red-400 text-sm mt-1">{editErrors.title}</p>}
+              </div>
+
+              <div>
+                <input
+                  type="text"
+                  placeholder="Author"
+                  value={product.author}
+                  onChange={(e) => {
+                    setProduct({ ...product, author: e.target.value });
+                    if (editErrors.author) setEditErrors({ ...editErrors, author: "" });
+                  }}
+                  className={`w-full p-3 bg-gray-700 rounded-lg ${editErrors.author ? 'border border-red-500' : ''}`}
+                />
+                {editErrors.author && <p className="text-red-400 text-sm mt-1">{editErrors.author}</p>}
+              </div>
+
+              <div>
+                <input
+                  type="number"
+                  placeholder="Price"
+                  value={product.price}
+                  onChange={(e) => {
+                    setProduct({ ...product, price: e.target.value });
+                    if (editErrors.price) setEditErrors({ ...editErrors, price: "" });
+                  }}
+                  className={`w-full p-3 bg-gray-700 rounded-lg ${editErrors.price ? 'border border-red-500' : ''}`}
+                />
+                {editErrors.price && <p className="text-red-400 text-sm mt-1">{editErrors.price}</p>}
+              </div>
+
+              <div>
+                <div className="flex gap-2 mb-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setImageUploadType('url');
+                      setImagePreview('');
+                    }}
+                    className={`flex items-center gap-1 px-3 py-1 rounded text-sm ${imageUploadType === 'url' ? 'bg-blue-600' : 'bg-gray-600'}`}
+                  >
+                    <LinkIcon size={14} /> URL
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setImageUploadType('file');
+                      setProduct({ ...product, image: '' });
+                    }}
+                    className={`flex items-center gap-1 px-3 py-1 rounded text-sm ${imageUploadType === 'file' ? 'bg-blue-600' : 'bg-gray-600'}`}
+                  >
+                    <Upload size={14} /> Upload
+                  </button>
+                </div>
+
+                {imageUploadType === 'url' ? (
+                  <input
+                    type="text"
+                    placeholder="Image URL (e.g., https://example.com/image.jpg)"
+                    value={product.image}
+                    onChange={(e) => {
+                      setProduct({ ...product, image: e.target.value });
+                      setImagePreview(e.target.value);
+                      if (editErrors.image) setEditErrors({ ...editErrors, image: "" });
+                    }}
+                    className={`w-full p-3 bg-gray-700 rounded-lg ${editErrors.image ? 'border border-red-500' : ''}`}
+                  />
+                ) : (
+                  <div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="w-full p-3 bg-gray-700 rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-gray-600 file:text-white hover:file:bg-gray-500"
+                    />
+                    <p className="text-gray-400 text-xs mt-1">Max file size: 5MB. Supported formats: JPG, PNG, GIF, WebP</p>
+                  </div>
+                )}
+
+                {/* Image Preview */}
+                {(product.image || imagePreview) && (
+                  <div className="mt-3">
+                    <p className="text-gray-300 text-sm mb-2">Preview:</p>
+                    <img
+                      src={imagePreview || product.image}
+                      alt="Preview"
+                      className="w-32 h-32 object-cover rounded-lg border border-gray-600"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        setEditErrors({ ...editErrors, image: "Invalid image URL or corrupted file" });
+                      }}
+                      onLoad={(e) => {
+                        e.target.style.display = 'block';
+                        if (editErrors.image === "Invalid image URL or corrupted file") {
+                          setEditErrors({ ...editErrors, image: "" });
+                        }
+                      }}
+                    />
+                  </div>
+                )}
+
+                {editErrors.image && <p className="text-red-400 text-sm mt-1">{editErrors.image}</p>}
+              </div>
+
+              <div>
+                <textarea
+                  placeholder="Description"
+                  value={product.description}
+                  onChange={(e) => {
+                    setProduct({ ...product, description: e.target.value });
+                    if (editErrors.description) setEditErrors({ ...editErrors, description: "" });
+                  }}
+                  className={`w-full p-3 bg-gray-700 rounded-lg ${editErrors.description ? 'border border-red-500' : ''}`}
+                  rows="3"
+                />
+                {editErrors.description && <p className="text-red-400 text-sm mt-1">{editErrors.description}</p>}
+              </div>
+
               <button
                 type="submit"
                 className="w-full py-3 bg-green-600 rounded-lg hover:bg-green-700 transition"
               >
                 Save Changes
+              </button>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add Product Modal */}
+      {showAddModal && (
+        <div className="fixed inset-0 flex items-center justify-center backdrop-blur-sm bg-black/60 z-50">
+          <div className="bg-gray-900 text-white p-6 rounded-xl shadow-xl w-full max-w-lg relative max-h-[90vh] overflow-y-auto">
+            <button
+              onClick={() => {
+                setShowAddModal(false);
+                resetModalState();
+              }}
+              className="absolute top-3 right-3 text-gray-400 hover:text-white"
+            >
+              <XCircle size={24} />
+            </button>
+            <h2 className="text-2xl font-semibold mb-4">Add New Product</h2>
+
+            <form onSubmit={handleAddSubmit} className="space-y-3">
+              <div>
+                <input
+                  type="text"
+                  placeholder="Title"
+                  value={product.title}
+                  onChange={(e) => {
+                    setProduct({ ...product, title: e.target.value });
+                    if (editErrors.title) setEditErrors({ ...editErrors, title: "" });
+                  }}
+                  className={`w-full p-3 bg-gray-700 rounded-lg ${editErrors.title ? 'border border-red-500' : ''}`}
+                />
+                {editErrors.title && <p className="text-red-400 text-sm mt-1">{editErrors.title}</p>}
+              </div>
+
+              <div>
+                <input
+                  type="text"
+                  placeholder="Author"
+                  value={product.author}
+                  onChange={(e) => {
+                    setProduct({ ...product, author: e.target.value });
+                    if (editErrors.author) setEditErrors({ ...editErrors, author: "" });
+                  }}
+                  className={`w-full p-3 bg-gray-700 rounded-lg ${editErrors.author ? 'border border-red-500' : ''}`}
+                />
+                {editErrors.author && <p className="text-red-400 text-sm mt-1">{editErrors.author}</p>}
+              </div>
+
+              <div>
+                <input
+                  type="number"
+                  placeholder="Price"
+                  value={product.price}
+                  onChange={(e) => {
+                    setProduct({ ...product, price: e.target.value });
+                    if (editErrors.price) setEditErrors({ ...editErrors, price: "" });
+                  }}
+                  className={`w-full p-3 bg-gray-700 rounded-lg ${editErrors.price ? 'border border-red-500' : ''}`}
+                />
+                {editErrors.price && <p className="text-red-400 text-sm mt-1">{editErrors.price}</p>}
+              </div>
+
+              <div>
+                <div className="flex gap-2 mb-2">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setImageUploadType('url');
+                      setImagePreview('');
+                    }}
+                    className={`flex items-center gap-1 px-3 py-1 rounded text-sm ${imageUploadType === 'url' ? 'bg-blue-600' : 'bg-gray-600'}`}
+                  >
+                    <LinkIcon size={14} /> URL
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setImageUploadType('file');
+                      setProduct({ ...product, image: '' });
+                    }}
+                    className={`flex items-center gap-1 px-3 py-1 rounded text-sm ${imageUploadType === 'file' ? 'bg-blue-600' : 'bg-gray-600'}`}
+                  >
+                    <Upload size={14} /> Upload
+                  </button>
+                </div>
+
+                {imageUploadType === 'url' ? (
+                  <input
+                    type="text"
+                    placeholder="Image URL (e.g., https://example.com/image.jpg)"
+                    value={product.image}
+                    onChange={(e) => {
+                      setProduct({ ...product, image: e.target.value });
+                      setImagePreview(e.target.value);
+                      if (editErrors.image) setEditErrors({ ...editErrors, image: "" });
+                    }}
+                    className={`w-full p-3 bg-gray-700 rounded-lg ${editErrors.image ? 'border border-red-500' : ''}`}
+                  />
+                ) : (
+                  <div>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={handleImageUpload}
+                      className="w-full p-3 bg-gray-700 rounded-lg text-white file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-gray-600 file:text-white hover:file:bg-gray-500"
+                    />
+                    <p className="text-gray-400 text-xs mt-1">Max file size: 5MB. Supported formats: JPG, PNG, GIF, WebP</p>
+                  </div>
+                )}
+
+                {/* Image Preview */}
+                {(product.image || imagePreview) && (
+                  <div className="mt-3">
+                    <p className="text-gray-300 text-sm mb-2">Preview:</p>
+                    <img
+                      src={imagePreview || product.image}
+                      alt="Preview"
+                      className="w-32 h-32 object-cover rounded-lg border border-gray-600"
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        setEditErrors({ ...editErrors, image: "Invalid image URL or corrupted file" });
+                      }}
+                      onLoad={(e) => {
+                        e.target.style.display = 'block';
+                        if (editErrors.image === "Invalid image URL or corrupted file") {
+                          setEditErrors({ ...editErrors, image: "" });
+                        }
+                      }}
+                    />
+                  </div>
+                )}
+
+                {editErrors.image && <p className="text-red-400 text-sm mt-1">{editErrors.image}</p>}
+              </div>
+
+              <div>
+                <textarea
+                  placeholder="Description"
+                  value={product.description}
+                  onChange={(e) => {
+                    setProduct({ ...product, description: e.target.value });
+                    if (editErrors.description) setEditErrors({ ...editErrors, description: "" });
+                  }}
+                  className={`w-full p-3 bg-gray-700 rounded-lg ${editErrors.description ? 'border border-red-500' : ''}`}
+                  rows="3"
+                />
+                {editErrors.description && <p className="text-red-400 text-sm mt-1">{editErrors.description}</p>}
+              </div>
+
+              <button
+                type="submit"
+                className="w-full py-3 bg-green-600 rounded-lg hover:bg-green-700 transition"
+              >
+                Add Product
               </button>
             </form>
           </div>

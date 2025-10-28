@@ -1,9 +1,9 @@
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useCart } from "../context/CartContext";
 import { useTheme } from "../context/ThemeContext";
-import { FaBars, FaTimes } from "react-icons/fa";
+import { FaBars, FaTimes, FaUser, FaChevronDown, FaShoppingCart } from "react-icons/fa";
 import Logo from "../assets/logo.png";
 
 const Navbar = () => {
@@ -13,8 +13,25 @@ const Navbar = () => {
   const nav = useNavigate();
 
   const [menuOpen, setMenuOpen] = useState(false);
+  const [userDropdownOpen, setUserDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
 
   const toggleMenu = () => setMenuOpen(!menuOpen);
+  const toggleUserDropdown = () => setUserDropdownOpen(!userDropdownOpen);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setUserDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
   const cartItemCount = cart.reduce((total, item) => total + item.quantity, 0);
 
@@ -30,26 +47,11 @@ const Navbar = () => {
           <Link to="/" className="text-gray-900 dark:text-white">
             Home
           </Link>
-          {!user && (
-            <Link to="/admin-login" className="text-gray-900 dark:text-white">
-              Admin
-            </Link>
-          )}
           {user && user.role === "user" && (
             <>
               <Link to="/products" className="text-gray-900 dark:text-white">
                 Products
               </Link>
-              <div className="relative">
-                <Link to="/cart" className="text-gray-900 dark:text-white">
-                  Cart
-                </Link>
-                {cartItemCount > 0 && (
-                  <span className="absolute -top-2 -right-3 bg-red-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
-                    {cartItemCount}
-                  </span>
-                )}
-              </div>
               <Link to="/orders" className="text-gray-900 dark:text-white">
                 Orders
               </Link>
@@ -60,15 +62,6 @@ const Navbar = () => {
               <Link to="/admin" className="text-gray-900 dark:text-white">
                 Dashboard
               </Link>
-              <Link
-                to="/manage-products"
-                className="text-gray-900 dark:text-white"
-              >
-                Manage Products
-              </Link>
-              <Link to="/customers" className="text-gray-900 dark:text-white">
-                Customers
-              </Link>
             </>
           )}
         </div>
@@ -76,13 +69,6 @@ const Navbar = () => {
 
       {/* Right Section */}
       <div className="flex items-center space-x-4">
-        {/* Show user name on ALL screens */}
-        {user && (
-          <span className="text-gray-900 dark:text-white font-medium">
-            {user.name || "User"}
-          </span>
-        )}
-
         {/* Desktop Buttons */}
         <div className="hidden md:flex items-center space-x-4">
           {!user && (
@@ -96,24 +82,67 @@ const Navbar = () => {
             </>
           )}
 
+          {/* Cart Icon for Users */}
+          {user && user.role === "user" && (
+            <Link 
+              to="/cart" 
+              className="relative text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 p-2 rounded-lg transition-colors"
+              title="Shopping Cart"
+            >
+              <FaShoppingCart size={20} />
+              {cartItemCount > 0 && (
+                <span className="absolute -top-1 -right-1 bg-red-600 text-white text-xs font-bold rounded-full h-5 w-5 flex items-center justify-center">
+                  {cartItemCount}
+                </span>
+              )}
+            </Link>
+          )}
+
           {user && (
-            <>
+            <div className="relative" ref={dropdownRef}>
               <button
-                onClick={toggleTheme}
-                className="px-3 py-1 bg-gray-200 dark:bg-gray-600 text-gray-900 dark:text-white rounded hover:bg-gray-300 dark:hover:bg-gray-500 focus:outline-none"
+                onClick={toggleUserDropdown}
+                className="flex items-center space-x-2 text-gray-900 dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700 px-3 py-2 rounded-lg transition-colors"
+                title={user.name || "User"}
               >
-                {isDarkMode ? "Light" : "Dark"} Mode
+                <div className="w-8 h-8 bg-blue-600 rounded-full flex items-center justify-center">
+                  <FaUser className="text-white text-sm" />
+                </div>
+                <FaChevronDown className={`text-sm transition-transform ${userDropdownOpen ? 'rotate-180' : ''}`} />
               </button>
-              <button
-                onClick={() => {
-                  logout();
-                  nav("/");
-                }}
-                className="px-3 text-gray-900 dark:text-white focus:outline-none"
-              >
-                Logout
-              </button>
-            </>
+
+              {userDropdownOpen && (
+                <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 py-2 z-50">
+                  <div className="px-4 py-2 border-b border-gray-200 dark:border-gray-700">
+                    <p className="text-sm font-medium text-gray-900 dark:text-white">
+                      {user.name || "User"}
+                    </p>
+                    <p className="text-xs text-gray-500 dark:text-gray-400">
+                      {user.email}
+                    </p>
+                  </div>
+                  <button
+                    onClick={() => {
+                      toggleTheme();
+                      setUserDropdownOpen(false);
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
+                    {isDarkMode ? "Light" : "Dark"} Mode
+                  </button>
+                  <button
+                    onClick={() => {
+                      logout();
+                      nav("/");
+                      setUserDropdownOpen(false);
+                    }}
+                    className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
+                  >
+                    Logout
+                  </button>
+                </div>
+              )}
+            </div>
           )}
         </div>
 
@@ -154,13 +183,6 @@ const Navbar = () => {
             >
               Register
             </Link>
-            <Link
-              to="/admin-login"
-              onClick={toggleMenu}
-              className="block text-gray-900 dark:text-white"
-            >
-              Admin
-            </Link>
           </>
         )}
 
@@ -199,21 +221,20 @@ const Navbar = () => {
             >
               Dashboard
             </Link>
-            <Link
-              to="/manage-products"
-              onClick={toggleMenu}
-              className="block text-gray-900 dark:text-white"
-            >
-              Manage Products
-            </Link>
-            <Link
-              to="/customers"
-              onClick={toggleMenu}
-              className="block text-gray-900 dark:text-white"
-            >
-              Customers
-            </Link>
           </>
+        )}
+
+        {user && (
+          <div className="border-t border-gray-200 dark:border-gray-600 pt-2 mt-2">
+            <div className="px-2 py-2">
+              <p className="text-sm font-medium text-gray-900 dark:text-white">
+                {user.name || "User"}
+              </p>
+              <p className="text-xs text-gray-500 dark:text-gray-400">
+                {user.email}
+              </p>
+            </div>
+          </div>
         )}
 
         {user && (

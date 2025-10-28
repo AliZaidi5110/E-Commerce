@@ -3,6 +3,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useProducts } from "../context/ProductContext";
 import { useCart } from "../context/CartContext";
 import { useAuth } from "../context/AuthContext";
+import { useToast } from "../components/Toast";
 import { motion, AnimatePresence } from "framer-motion";
 import { getImageSrc } from "../utils/imageUtils";
 
@@ -12,6 +13,7 @@ const ProductDetail = () => {
   const product = products.find((p) => String(p._id) === String(id));
   const { addToCart } = useCart();
   const { user } = useAuth();
+  const { success, error } = useToast();
   const navigate = useNavigate();
   const [showConfirmModal, setShowConfirmModal] = useState(false);
   const [showQuantityModal, setShowQuantityModal] = useState(false);
@@ -76,15 +78,18 @@ const ProductDetail = () => {
   const handleAdd = () => setShowConfirmModal(true);
 
   const confirmAdd = () => {
-    addToCart(product, 1);
+    const result = addToCart(product, 1);
     setShowConfirmModal(false);
-    setShowToast(true);
-    setTimeout(() => {
-      setShowToast(false);
-      if (addToCartButtonRef.current) {
-        addToCartButtonRef.current.focus();
-      }
-    }, 3000);
+    
+    if (result.error) {
+      error(result.error);
+    } else {
+      success("Book added to cart!");
+    }
+    
+    if (addToCartButtonRef.current) {
+      addToCartButtonRef.current.focus();
+    }
   };
 
   const handleBuyNow = () => setShowQuantityModal(true);

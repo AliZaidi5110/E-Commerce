@@ -13,24 +13,23 @@ export const CartProvider = ({ children }) => {
   }, [cart]);
 
   const addToCart = (product, quantity = 1) => {
-    setCart((prevCart) => {
-      const existingItem = prevCart.find((item) => item.productId === product._id);
-      if (existingItem) {
-        return prevCart.map((item) =>
-          item.productId === product._id
-            ? { ...item, quantity: item.quantity + quantity }
-            : item
-        );
-      }
-      return [...prevCart, { 
+    const existingItem = cart.find((item) => item.productId === product._id);
+    if (existingItem) {
+      return { error: "Selected item already in the cart" };
+    }
+    
+    setCart((prevCart) => [
+      ...prevCart, 
+      { 
         productId: product._id, 
         title: product.title, 
         author: product.author,
         image: product.image,
         price: product.price, 
         quantity 
-      }];
-    });
+      }
+    ]);
+    return { success: true };
   };
 
   const removeFromCart = (productId) => {
